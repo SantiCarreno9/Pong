@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public enum Control
@@ -34,17 +35,34 @@ public class Paddle : MonoBehaviour
     private float _paddleWidth = 0;
 
     private Vector2 _screenBounds;
+
+    private float _input = 0;
+    private float _initialSpeed;
+    private Vector2 _movementAxis = Vector2.zero;
+    private Vector2 _defaultPosition = Vector2.zero;
+
+    public int PlayerNumber => _playerNumber;
     // Start is called before the first frame update
     void Start()
     {
+        _defaultPosition = transform.position;
+        _initialSpeed = _speed;
+
         _screenBounds = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height, Camera.main.transform.position.z));
         _paddleHeight = _spriteRenderer.bounds.size.y / 2;
         _paddleWidth = _spriteRenderer.bounds.size.x / 2;
+
+        _movementAxis = _movementDirection == MovementDirection.Vertical ? Vector2.up : Vector2.right;
     }
 
     private void Update()
     {
-        ControlMovement();
+        GetUserInput();
+    }
+
+    private void FixedUpdate()
+    {
+        MovePaddle();
     }
 
     /// <summary>
@@ -52,9 +70,9 @@ public class Paddle : MonoBehaviour
     /// </summary>
     private void LateUpdate()
     {
-        Vector2 clampedPosition= transform.position;        
-        if (_movementDirection == MovementDirection.Vertical)        
-            clampedPosition.y= Mathf.Clamp(transform.position.y, (_screenBounds.y * -1) + _paddleHeight, _screenBounds.y - _paddleHeight);
+        Vector2 clampedPosition = transform.position;
+        if (_movementDirection == MovementDirection.Vertical)
+            clampedPosition.y = Mathf.Clamp(transform.position.y, (_screenBounds.y * -1) + _paddleHeight, _screenBounds.y - _paddleHeight);
         else
             clampedPosition.x = Mathf.Clamp(transform.position.x, (_screenBounds.x * -1) + _paddleWidth, _screenBounds.x - _paddleWidth);
         transform.position = clampedPosition;
@@ -62,50 +80,73 @@ public class Paddle : MonoBehaviour
 
     public void SetControl(Control control) => this._control = control;
 
-    private void ControlMovement()
+    private void GetUserInput()
     {
-        int direction = 0;
-
+        _input = 0;
         switch (_control)
         {
             case Control.WSKeys:
                 if (Input.GetKey(KeyCode.W))
-                    direction = 1;
+                    _input = 1;
 
                 if (Input.GetKey(KeyCode.S))
-                    direction = -1;
-                
+                    _input = -1;
+
                 break;
             case Control.Arrows:
                 if (Input.GetKey(KeyCode.UpArrow))
-                    direction = 1;
+                    _input = 1;
 
                 if (Input.GetKey(KeyCode.DownArrow))
-                    direction = -1;
+                    _input = -1;
                 break;
             case Control.Gamepad1:
                 if (Input.GetKey(KeyCode.D))
-                    direction = 1;
+                    _input = 1;
 
                 if (Input.GetKey(KeyCode.A))
-                    direction = -1;
+                    _input = -1;
                 break;
             case Control.Gamepad2:
                 if (Input.GetKey(KeyCode.RightArrow))
-                    direction = 1;
+                    _input = 1;
 
                 if (Input.GetKey(KeyCode.LeftArrow))
-                    direction = -1;
+                    _input = -1;
                 break;
             case Control.AI:
                 break;
             default:
                 break;
         }
-
-        Vector2 movementAxis = _movementDirection == MovementDirection.Vertical ? Vector2.up : Vector2.right;
-
-        if (!ReferenceEquals(_rigidbody, null))
-            _rigidbody.velocity = movementAxis * _speed * direction;
     }
+
+    private void MovePaddle()
+    {
+        if (!ReferenceEquals(_rigidbody, null))
+            _rigidbody.velocity = _movementAxis * _speed * _input;
+    }
+
+    public void GoToDefaultPosition()
+    {
+        transform.position = _defaultPosition;
+    }
+
+    #region POWER-UPS
+
+    public IEnumerator Freeze()
+    {
+        _speed = 0;
+        yield return new WaitForSeconds(2);
+        _speed = _initialSpeed;
+    }
+
+    public IEnumerator Turbo()
+    {
+        _speed *= 2;
+        yield return new WaitForSeconds(5);
+        _speed = _initialSpeed;
+    }
+
+    #endregion
 }
