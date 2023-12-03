@@ -2,28 +2,29 @@ using UnityEngine;
 
 public class BoundaryWall : MonoBehaviour
 {
+    [Header("Visuals")]
     [SerializeField]
-    private BoxCollider2D _collider = default;
+    private GameObject _asteroids = default;
     [SerializeField]
-    private GameManager _gameManager = default;
+    private GameObject _laserBeam = default;
+
     [SerializeField]
     private int _playerNumber = 0;
 
     public void TurnIntoBoundary()
     {
-        if (!ReferenceEquals(_collider, null))
-            _collider.isTrigger = false;
+        _asteroids.SetActive(true);
+        _laserBeam.SetActive(false);
     }
 
-    public void TurnIntoScoreLine() 
+    public void TurnIntoScoreLine()
     {
-        if (!ReferenceEquals(_collider, null))
-            _collider.isTrigger = true;
+        _asteroids.SetActive(false);
+        _laserBeam.SetActive(true);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void OnTriggerExit2D(Collider2D collision)
     {
-        if (!ReferenceEquals(_gameManager, null))
-            _gameManager.Score(_playerNumber);
+        GameManager.Instance.Score(_playerNumber);
     }
 }

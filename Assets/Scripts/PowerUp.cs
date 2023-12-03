@@ -7,7 +7,7 @@ public enum PowerUps
 }
 
 public class PowerUp : MonoBehaviour
-{    
+{
     [SerializeField]
     private PowerUps _powerUp = PowerUps.Freeze;
 
@@ -22,16 +22,13 @@ public class PowerUp : MonoBehaviour
         if (collision.gameObject.CompareTag("Obstacle"))
         {
             Debug.Log("Collision with Obstacle");
-            if (!ReferenceEquals(_powerUpsManager, null))
-                _powerUpsManager.Respawn(this);
+            _powerUpsManager.Respawn(this);
         }
-
 
         if (!collision.gameObject.CompareTag("Ball"))
             return;
 
-        if (!ReferenceEquals(_powerUpsManager, null))
-            _powerUpsManager.ActivatePowerUp(this);
+        _powerUpsManager.ActivatePowerUp(this);
     }
 
 }

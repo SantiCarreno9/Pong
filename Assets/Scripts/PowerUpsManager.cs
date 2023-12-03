@@ -5,8 +5,6 @@ using UnityEngine;
 public class PowerUpsManager : MonoBehaviour
 {
     [SerializeField]
-    private GameManager _gameManager = default;
-    [SerializeField]
     private PowerUp[] _freezePowerUps;
     [SerializeField]
     private PowerUp[] _turboPowerUps;
@@ -19,6 +17,10 @@ public class PowerUpsManager : MonoBehaviour
     private Vector2 _yAxisRange = Vector2.zero;
 
     private byte _activatedPowerUps = 0;
+    private bool _spawn=false;
+
+    public void ResumeSpawning() => _spawn = true;
+    public void StopSpawning() => _spawn = false;
 
     // Start is called before the first frame update
     void Start()
@@ -27,7 +29,7 @@ public class PowerUpsManager : MonoBehaviour
         float yScale = _spawningSpace.transform.localScale.y;
         _xAxisRange = new Vector2(-xScale / 2, xScale / 2);
         _yAxisRange = new Vector2(-yScale / 2, yScale / 2);
-        InvokeRepeating("SpawnRandomPowerUp", 10, 10);
+        Reset();
     }
 
     // Update is called once per frame
@@ -38,6 +40,9 @@ public class PowerUpsManager : MonoBehaviour
 
     public void SpawnRandomPowerUp()
     {
+        if (!_spawn)
+            return;
+
         if (_activatedPowerUps == 2)
             return;
 
@@ -78,6 +83,15 @@ public class PowerUpsManager : MonoBehaviour
         _activatedPowerUps++;
     }
 
+    public void HideAllPowerUps()
+    {
+        for (int i = 0; i < _freezePowerUps.Length; i++)
+            _freezePowerUps[i].gameObject.SetActive(false);
+
+        for (int i = 0; i < _turboPowerUps.Length; i++)
+            _turboPowerUps[i].gameObject.SetActive(false);
+    }
+
     public void Respawn(PowerUp powerUp)
     {
         powerUp.transform.position = GetRandomPosition();
@@ -92,12 +106,17 @@ public class PowerUpsManager : MonoBehaviour
 
     public void ActivatePowerUp(PowerUp powerUp)
     {
-        if (!ReferenceEquals(_gameManager, null))
-            _gameManager.ActivatePowerUp(powerUp.Power);
+        GameManager.Instance.ActivatePowerUp(powerUp.Power);
 
         powerUp.gameObject.SetActive(false);
         _activatedPowerUps--;
     }
 
-    //public void 
+    public void Reset()
+    {
+        _activatedPowerUps = 0;
+        CancelInvoke();
+        HideAllPowerUps();
+        InvokeRepeating("SpawnRandomPowerUp", 10, 10);
+    }
 }

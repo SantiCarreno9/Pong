@@ -1,84 +1,79 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+
 
 public class GameManager : MonoBehaviour
 {
-    [Header("UI")]
-    [Header("Menu")]
+    public static GameManager Instance;
     [SerializeField]
-    private GameObject _menuScreen = default;
-    [SerializeField]
-    private TMP_Dropdown _playersDropdown = default;    
-
-
-    [Space]
-    [SerializeField]
-    private GameObject _inGameScreen = default;
-    [SerializeField]
-    private GameObject _pauseScreen = default;
-
-    [Header("End Screen")]
-    [SerializeField]
-    private GameObject _endScreen = default;
-    [SerializeField]
-    private TMP_Text _endScreenText = default;
-
-    [Space]
-    [Header("In Game Components")]
-    [SerializeField]
-    private GameObject _gameParent = default;
-    [SerializeField]
-    private Paddle[] _paddles = default;
+    private PaddleController[] _paddles = default;
     [SerializeField]
     private BallController _ballController = default;
     [SerializeField]
-    private TMP_Text[] _scoreTexts = default;
-
-
-    private Vector2 _screenBounds;
+    private BoundaryWall[] _boundaries = default;
+    [SerializeField]
+    private PowerUpsManager _powerUpsManager = default;
+    [SerializeField]
+    private Transform _rangeBox = default;
 
     [SerializeField]
     private int _amountOfPlayers = 2;
 
-    private int[] _scores;
+    [SerializeField]
+    private GameUIManager _gameUIManager = default;
+
+    private int[] _scores = new int[4];
 
     private int _lastConcedingPlayer = -1;
 
+    private float _timeToShootBall = 3f;
     private bool _gamePaused = false;
+
+    public BallController BallController => _ballController;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+            Destroy(this.gameObject);
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+    }
+
     // Start is called before the first frame update
     void Start()
     {
-        _screenBounds = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height, Camera.main.transform.position.z));
-        if (!ReferenceEquals(_gameParent, null))
-            _gameParent.SetActive(false);
-
-        _scores = new int[_amountOfPlayers];
-        for (int i = 0; i < _amountOfPlayers; i++)
-            _scores[i] = 0;
-
-        SetGameLayout();
+        Time.timeScale = 0;
     }
 
-    // Update is called once per frame
-    void Update()
+
+    #region MENU
+
+    public void UpdateAmountOfPlayers(int playersAmount)
     {
-        if (Input.GetKeyUp(KeyCode.Escape))
-        {
-            if (!_gamePaused) PauseGame();
-            else ResumeGame();
-        }
+        _amountOfPlayers = playersAmount;
+        for (int i = 0; i < _paddles.Length; i++)
+            _paddles[i].gameObject.SetActive(i < playersAmount);
 
+        for (int i = 0; i < _boundaries.Length; i++)
+        {
+            if (i < _amountOfPlayers)
+                _boundaries[i].TurnIntoScoreLine();
+            else _boundaries[i].TurnIntoBoundary();
+        }
     }
+
+    #endregion
 
     #region GAMEPLAY
 
     public void StartGame()
     {
-        HideMainMenu();
-        ShowInGameScreen();
-        StartCoroutine(ShootBall());
+        SetUpNewGame();
+        ResumeGame();
+        Invoke("ShootBall", _timeToShootBall);
     }
 
     private void RestartPlayersPosition()
@@ -87,82 +82,88 @@ public class GameManager : MonoBehaviour
             _paddles[i].GoToDefaultPosition();
     }
 
-    private void PauseGame()
+    public void PauseGame()
     {
         Time.timeScale = 0;
         _gamePaused = true;
+        _powerUpsManager.StopSpawning();
     }
 
-    private void ResumeGame()
+    public void ResumeGame()
     {
         Time.timeScale = 1;
-        _gamePaused = true;
+        _gamePaused = false;
+        _powerUpsManager.ResumeSpawning();
     }
 
     private IEnumerator EndGame(int winner)
     {
+        yield return new WaitForSeconds(2);
+        StartCoroutine(_gameUIManager.ShowWinner(winner));
         SetUpNewGame();
-        HideInGameScreen();
-        ShowEndGameScreen(winner);
-        yield return new WaitForSeconds(3);
-        HideEndGameScreen();
-        ShowMainMenu();
-    }
-
-    public void ExitGame()
-    {
-        Application.Quit();
     }
 
     private void SetUpNewGame()
     {
+        _powerUpsManager.Reset();
         _ballController.Reset();
         _ballController.Hide();
-        for (int i = 0; i < _scoreTexts.Length; i++)
-            _scoreTexts[i].text = "0";
+
+        //Scores
         for (int i = 0; i < _scores.Length; i++)
             _scores[i] = 0;
+
+
         RestartPlayersPosition();
+    }
+
+    public void ReshootBall()
+    {        
+        RestartPlayersPosition();
+        Invoke("ShootBall", _timeToShootBall);
+        ResumeGame();
     }
 
     #endregion
 
-    #region ACTIONS
+    #region IN GAME ACTIONS
 
     public void Score(int concedingPlayer)
     {
+        _ballController.Explode();
         _lastConcedingPlayer = concedingPlayer;
-        if (ReferenceEquals(_scoreTexts, null) || _scoreTexts.Length < 2)
-            return;
 
-        int playerScored = 0;
+        int[] lastHitPlayers = _ballController.GetLastHitPlayers();
+        int scoringPlayer = -1;
         if (_amountOfPlayers == 2)
-            playerScored = (concedingPlayer == 0) ? 1 : 0;
+            scoringPlayer = (concedingPlayer == 0) ? 1 : 0;
+        else
+            scoringPlayer = (lastHitPlayers[0] != concedingPlayer) ? lastHitPlayers[0] : lastHitPlayers[1];
 
-        _scores[playerScored]++;
-        _scoreTexts[playerScored].text = _scores[playerScored].ToString();
-
-        if (_scores[playerScored] == 3)
+        if (scoringPlayer != -1)
         {
-            StartCoroutine(EndGame(playerScored + 1));
-            return;
+            _scores[scoringPlayer]++;
+            _gameUIManager.GivePointsToPlayer(scoringPlayer, _scores[scoringPlayer]);
+            if (_scores[scoringPlayer] == 3)
+            {
+                StartCoroutine(EndGame(scoringPlayer));
+                return;
+            }
         }
 
-        StartCoroutine(ShootBall());
+        Invoke("ShootBall", _timeToShootBall);
     }
 
-    private IEnumerator ShootBall()
+    public void ShootBall()
     {
-        yield return new WaitForSeconds(2);
-        Vector2 ballPositionRange;
+        _ballController.MoveOutOfBounds();
+        _ballController.Hide();
+        _ballController.Reset();
+        Vector2 ballPosition;
         Vector2 ballDirection;
         int defendingPlayer = _lastConcedingPlayer;
         if (_lastConcedingPlayer == -1)
             defendingPlayer = Random.Range(0, _amountOfPlayers);
-
-        if (_amountOfPlayers == 2)
-            ballPositionRange = new Vector2(_screenBounds.y * -1 * 0.8f, _screenBounds.y * 0.8f);
-        else ballPositionRange = Vector2.zero;
 
         switch (defendingPlayer)
         {
@@ -180,18 +181,28 @@ public class GameManager : MonoBehaviour
                 break;
             default:
                 ballDirection = Vector2.zero;
-                ballPositionRange = Vector2.zero;
                 break;
         }
 
+        if (_amountOfPlayers == 2)
+        {
+            float yHalfScale = _rangeBox.localScale.y / 2;
+            Vector2 range = new Vector2(_rangeBox.position.y - yHalfScale, _rangeBox.position.y + yHalfScale);
+            ballPosition = Vector2.up * (Random.Range(range.x, range.y));
+            //float randomPosition = Random.Range(range.x, range.y);
+            //ballPosition = Vector2.Perpendicular(ballDirection) * randomPosition;
+        }
+        else ballPosition = Vector2.zero;
+
+        ballDirection = ballDirection + (Vector2.Perpendicular(ballDirection) * Random.Range(-1.0f, 1.0f));
+
         _ballController.Show();
-        _ballController.Spawn(ballPositionRange, ballDirection);
+        _ballController.Spawn(ballPosition, ballDirection);
     }
 
     public void ActivatePowerUp(PowerUps powerUp)
     {
-        Debug.Log("Player " + _ballController.GetLastHitPlayer() + " picked " + powerUp.ToString() + " power-up");
-        int pickedUpByPlayer=_ballController.GetLastHitPlayer();
+        int pickedUpByPlayer = _ballController.GetLastHitPlayers()[0];
         switch (powerUp)
         {
             case PowerUps.Freeze:
@@ -211,98 +222,8 @@ public class GameManager : MonoBehaviour
             default:
                 break;
         }
-        
+
     }
 
-    #endregion
-
-    #region SCREEN
-
-    private void ShowMainMenu()
-    {
-        if (!ReferenceEquals(_menuScreen, null))
-            _menuScreen.SetActive(true);
-    }
-
-    private void HideMainMenu()
-    {
-        if (!ReferenceEquals(_menuScreen, null))
-            _menuScreen.SetActive(false);
-    }
-
-    private void ShowInGameScreen()
-    {
-        if (!ReferenceEquals(_inGameScreen, null))
-            _inGameScreen.SetActive(true);
-        if (!ReferenceEquals(_gameParent, null))
-            _gameParent.SetActive(true);
-    }
-
-    private void HideInGameScreen()
-    {
-        if (!ReferenceEquals(_inGameScreen, null))
-            _inGameScreen.SetActive(false);
-        if (!ReferenceEquals(_gameParent, null))
-            _gameParent.SetActive(false);
-    }
-
-    private void OpenPauseMenu()
-    {
-        if (!ReferenceEquals(_pauseScreen, null))
-            _pauseScreen.SetActive(true);
-    }
-
-    private void ClosePauseMenu()
-    {
-        if (!ReferenceEquals(_pauseScreen, null))
-            _pauseScreen.SetActive(false);
-    }
-
-    private void ShowEndGameScreen(int winner)
-    {
-        if (!ReferenceEquals(_endScreen, null))
-            _endScreen.SetActive(true);
-        if (!ReferenceEquals(_endScreenText, null))
-            _endScreenText.text = "Player " + winner + " wins!";
-    }
-
-    private void HideEndGameScreen()
-    {
-        if (!ReferenceEquals(_endScreen, null))
-            _endScreen.SetActive(false);
-    }
-
-    #endregion
-
-
-    private void SetGameLayout()
-    {
-        //if (_paddles.Length < 2)
-        //    return;
-
-        ////Left Paddle
-        //int leftPaddleDirection=0;
-
-        //if (Input.GetKey(KeyCode.W))
-        //    leftPaddleDirection = 1;
-
-        //if (Input.GetKey(KeyCode.S))
-        //    leftPaddleDirection = -1;
-
-        //if (!ReferenceEquals(_paddles[0], null))
-        //    _paddles[0].Move(leftPaddleDirection);
-
-        ////Right Paddle
-        //int rightPaddleDirection = 0;
-
-        //if (Input.GetKey(KeyCode.UpArrow))
-        //    rightPaddleDirection = 1;
-
-        //if (Input.GetKey(KeyCode.DownArrow))
-        //    rightPaddleDirection = -1;
-
-
-        //if (!ReferenceEquals(_paddles[1], null))
-        //    _paddles[1].Move(rightPaddleDirection);
-    }
+    #endregion  
 }
