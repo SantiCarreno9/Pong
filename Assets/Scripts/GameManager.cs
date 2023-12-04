@@ -98,14 +98,16 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator EndGame(int winner)
     {
-        yield return new WaitForSeconds(2);
+        yield return new WaitForSecondsRealtime(2);
         StartCoroutine(_gameUIManager.ShowWinner(winner));
+        Time.timeScale = 0;
         SetUpNewGame();
     }
 
     private void SetUpNewGame()
     {
         _powerUpsManager.Reset();
+        _ballController.MoveOutOfBounds();
         _ballController.Reset();
         _ballController.Hide();
 
@@ -118,8 +120,8 @@ public class GameManager : MonoBehaviour
     }
 
     public void ReshootBall()
-    {        
-        RestartPlayersPosition();
+    {
+        _ballController.MoveOutOfBounds();
         Invoke("ShootBall", _timeToShootBall);
         ResumeGame();
     }
@@ -189,8 +191,6 @@ public class GameManager : MonoBehaviour
             float yHalfScale = _rangeBox.localScale.y / 2;
             Vector2 range = new Vector2(_rangeBox.position.y - yHalfScale, _rangeBox.position.y + yHalfScale);
             ballPosition = Vector2.up * (Random.Range(range.x, range.y));
-            //float randomPosition = Random.Range(range.x, range.y);
-            //ballPosition = Vector2.Perpendicular(ballDirection) * randomPosition;
         }
         else ballPosition = Vector2.zero;
 

@@ -41,11 +41,12 @@ public class PaddleController : MonoBehaviour
     [SerializeField]
     private int _playerNumber;
 
+    private Control _originalControl;
     private float _speed = 10;
     private float _paddleHeight = 0;
     private float _paddleWidth = 0;
 
-    private float _aiMovementFrequency = 0.07f;
+    private float _aiMovementFrequency = 0;
     private float _aiTime = 0;
 
     private Vector2 _movementBounds;
@@ -61,6 +62,7 @@ public class PaddleController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        _originalControl = _control;
         _defaultPosition = transform.position;
         _initialSpeed = _speed;
 
@@ -74,15 +76,10 @@ public class PaddleController : MonoBehaviour
             float xHalfScale = _rangeBox.localScale.x / 2;
             _movementBounds = new Vector2(_rangeBox.position.x - xHalfScale, _rangeBox.position.x + xHalfScale);
         }
-        _paddleHeight = transform.localScale.y / 2;/* _spriteRenderer.bounds.size.y / 2;*/
-        _paddleWidth = transform.localScale.x / 2;/* _spriteRenderer.bounds.size.x / 2;*/
+        _paddleHeight = transform.localScale.y / 2;
+        _paddleWidth = transform.localScale.x / 2;
 
         _movementAxis = _movementDirection == MovementDirection.Vertical ? Vector2.up : Vector2.right;
-    }
-
-    private void OnEnable()
-    {
-        SetControl((int)_control);
     }
 
     private void OnDisable()
@@ -103,10 +100,6 @@ public class PaddleController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        //if (_control == Control.AI && EnableAIMovement)
-        //{
-        //    GetAIInput();            
-        //}
         MovePaddle();
     }
 
@@ -127,7 +120,10 @@ public class PaddleController : MonoBehaviour
 
     public void SetControl(int control)
     {
-        this._control = (Control)control;
+        if (control == 1)
+            _control = Control.AI;
+        else _control = _originalControl;
+
         _aiTriggerZone.SetActive(_control == Control.AI);
     }
 
@@ -152,17 +148,22 @@ public class PaddleController : MonoBehaviour
                     _input = -1;
                 break;
             case Control.Gamepad1:
-                if (Input.GetKey(KeyCode.D))
+                float inputJoy1 = 0;
+                if (_movementDirection == MovementDirection.Horizontal)
+                    inputJoy1 = Input.GetAxis("HorizontalJoy1");
+                //else 
+                if (inputJoy1 > 0)
                     _input = 1;
 
-                if (Input.GetKey(KeyCode.A))
+                if (inputJoy1 < 0)
                     _input = -1;
                 break;
             case Control.Gamepad2:
-                if (Input.GetKey(KeyCode.RightArrow))
+                float horizontalJoy2 = Input.GetAxis("HorizontalJoy2");
+                if (horizontalJoy2 > 0)
                     _input = 1;
 
-                if (Input.GetKey(KeyCode.LeftArrow))
+                if (horizontalJoy2 < 0)
                     _input = -1;
                 break;
         }
@@ -170,6 +171,8 @@ public class PaddleController : MonoBehaviour
 
     private void GetAIInput()
     {
+        if (_aiMovementFrequency == 0)
+            _aiMovementFrequency = UnityEngine.Random.Range(0f, 0.4f);
         _aiTime += Time.deltaTime;
         if (_aiTime < _aiMovementFrequency)
             return;
@@ -191,6 +194,7 @@ public class PaddleController : MonoBehaviour
         if (distance < -_paddleHeight) _input = -1;
 
         _aiTime = 0;
+        _aiMovementFrequency = 0;
     }
 
     private void MovePaddle()
@@ -217,7 +221,7 @@ public class PaddleController : MonoBehaviour
     }
 
     public IEnumerator Turbo()
-    {
+    {        
         _speed *= 2;
         _spaceshipVisualController.SetTurbo();
         yield return new WaitForSeconds(5);

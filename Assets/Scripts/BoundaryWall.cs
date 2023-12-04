@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class BoundaryWall : MonoBehaviour
@@ -23,8 +24,14 @@ public class BoundaryWall : MonoBehaviour
         _laserBeam.SetActive(true);
     }
 
-    private void OnTriggerExit2D(Collider2D collision)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
+        StartCoroutine(ScoreCoroutine());
+    }
+
+    private IEnumerator ScoreCoroutine()
+    {
+        yield return new WaitForSeconds(0.3f);
         GameManager.Instance.Score(_playerNumber);
     }
 }

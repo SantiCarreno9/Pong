@@ -19,11 +19,8 @@ public class PowerUp : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("Obstacle"))
-        {
-            Debug.Log("Collision with Obstacle");
-            _powerUpsManager.Respawn(this);
-        }
+        if (collision.gameObject.CompareTag("Obstacle"))        
+            _powerUpsManager.Respawn(this);       
 
         if (!collision.gameObject.CompareTag("Ball"))
             return;

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class BallController : MonoBehaviour
@@ -15,6 +16,9 @@ public class BallController : MonoBehaviour
     private bool _isMoving = false;
     private int[] _lastHitPlayers = new int[2];
 
+    private float _timeStuck = 0;
+    private float _maxTimeStuck = 5;
+
     public int[] GetLastHitPlayers()
     {
         return _lastHitPlayers;
@@ -25,6 +29,31 @@ public class BallController : MonoBehaviour
         Hide();
         for (int i = 0; i < _lastHitPlayers.Length; i++)
             _lastHitPlayers[i] = -1;
+    }
+
+    private void Update()
+    {
+        if (_isMoving)
+        {
+            bool isXZero = Math.Round(_rigidbody.velocity.x, 1) == 0;
+            bool isYZero = Math.Round(_rigidbody.velocity.y, 1) == 0;
+            if (isXZero || isYZero)
+                _timeStuck += Time.deltaTime;
+            else _timeStuck = 0;
+
+            if (_timeStuck > _maxTimeStuck)
+            {
+                Vector2 direction = (isXZero) ? Vector2.right : Vector2.up;
+                Deroute(direction);
+                _timeStuck = 0;
+            }
+        }
+    }
+
+    private void Deroute(Vector2 currentDirection)
+    {
+        Vector2 deroute = (Vector2.Perpendicular(currentDirection) * UnityEngine.Random.Range(-1.0f, 1.0f));
+        _rigidbody.AddForce((currentDirection + deroute) * _speed, ForceMode2D.Impulse);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -84,6 +113,7 @@ public class BallController : MonoBehaviour
 
     public void Reset()
     {
+        _rigidbody.velocity = Vector2.zero;
         transform.position = Vector2.zero;
         _isMoving = false;
         for (int i = 0; i < _lastHitPlayers.Length; i++)
@@ -92,6 +122,7 @@ public class BallController : MonoBehaviour
 
     public void Explode()
     {
+        _isMoving = false;
         _rigidbody.velocity = Vector2.zero;
         _animator.Play("Explosion");
     }

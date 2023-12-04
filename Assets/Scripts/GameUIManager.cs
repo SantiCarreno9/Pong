@@ -39,6 +39,10 @@ public class GameUIManager : MonoBehaviour
     [SerializeField]
     private TMP_Text[] _scoreTexts = default;
 
+    [Space]
+    [SerializeField]
+    private GameSoundEffects _soundEffects = default;
+
     private bool _isGamePaused = false;
 
     private void Start()
@@ -69,10 +73,11 @@ public class GameUIManager : MonoBehaviour
 
     public IEnumerator ShowWinner(int winnerNumber)
     {
+        _soundEffects.PlayWinnerSound();
         ShowScreen(GameScreen.End);
         ResetScores();
         _endScreenText.text = "Player " + (winnerNumber + 1) + " has won!";
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSecondsRealtime(3);
         GoToMainMenu();
     }
 
@@ -93,8 +98,9 @@ public class GameUIManager : MonoBehaviour
     }
 
     public void StartGame()
-    {
+    {        
         ResumeGame();
+        ResetScores();
         GameManager.Instance.StartGame();
     }
 
@@ -142,6 +148,7 @@ public class GameUIManager : MonoBehaviour
     {
         _scoreTexts[playerNumber].text = points.ToString();
         StartCoroutine(HighlightScore(playerNumber));
+        _soundEffects.PlayScoreSound();
     }
 
     private IEnumerator HighlightScore(int scoreIndex)

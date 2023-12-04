@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PowerUpsManager : MonoBehaviour
@@ -22,7 +20,6 @@ public class PowerUpsManager : MonoBehaviour
     public void ResumeSpawning() => _spawn = true;
     public void StopSpawning() => _spawn = false;
 
-    // Start is called before the first frame update
     void Start()
     {
         float xScale = _spawningSpace.transform.localScale.x;
@@ -30,12 +27,6 @@ public class PowerUpsManager : MonoBehaviour
         _xAxisRange = new Vector2(-xScale / 2, xScale / 2);
         _yAxisRange = new Vector2(-yScale / 2, yScale / 2);
         Reset();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
     public void SpawnRandomPowerUp()
