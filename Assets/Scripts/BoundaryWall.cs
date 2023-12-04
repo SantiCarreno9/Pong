@@ -26,6 +26,9 @@ public class BoundaryWall : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (collision.TryGetComponent(out BallController ball))       
+            ball.DisableCollider();
+        
         StartCoroutine(ScoreCoroutine());
     }
 

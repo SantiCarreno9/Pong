@@ -26,8 +26,7 @@ public class GameManager : MonoBehaviour
 
     private int _lastConcedingPlayer = -1;
 
-    private float _timeToShootBall = 3f;
-    private bool _gamePaused = false;
+    private float _timeToShootBall = 3f;    
 
     public BallController BallController => _ballController;
 
@@ -84,15 +83,13 @@ public class GameManager : MonoBehaviour
 
     public void PauseGame()
     {
-        Time.timeScale = 0;
-        _gamePaused = true;
+        Time.timeScale = 0;        
         _powerUpsManager.StopSpawning();
     }
 
     public void ResumeGame()
     {
-        Time.timeScale = 1;
-        _gamePaused = false;
+        Time.timeScale = 1;        
         _powerUpsManager.ResumeSpawning();
     }
 

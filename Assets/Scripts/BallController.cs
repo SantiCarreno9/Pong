@@ -9,6 +9,8 @@ public class BallController : MonoBehaviour
     private SpriteRenderer _spriteRenderer;
     [SerializeField]
     private Animator _animator;
+    [SerializeField]
+    private Collider2D _collider;
 
     [SerializeField]
     private float _speed = 2.5f;
@@ -118,6 +120,7 @@ public class BallController : MonoBehaviour
         _isMoving = false;
         for (int i = 0; i < _lastHitPlayers.Length; i++)
             _lastHitPlayers[i] = -1;
+        EnableCollider();
     }
 
     public void Explode()
@@ -132,5 +135,14 @@ public class BallController : MonoBehaviour
         transform.position = new Vector2(100, 100);
     }
 
+    public void EnableCollider()
+    {
+        _collider.enabled = true;
+    }
+
+    public void DisableCollider()
+    {
+        _collider.enabled = false;
+    }
 
 }

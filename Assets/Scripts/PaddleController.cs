@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 
@@ -25,9 +24,7 @@ public class PaddleController : MonoBehaviour
     [SerializeField]
     private MovementDirection _movementDirection;
     [SerializeField]
-    private Rigidbody2D _rigidbody = default;
-    [SerializeField]
-    private SpriteRenderer _spriteRenderer = default;
+    private Rigidbody2D _rigidbody = default;    
     [SerializeField]
     private Transform _rangeBox = default;
     [SerializeField]
