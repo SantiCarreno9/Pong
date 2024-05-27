@@ -158,8 +158,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_Sprite: {fileID: 21300000, guid: dcf30607a18d33d4b919158be572d8b1, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.36862746}
-  m_FlipX: 0
+  m_Color: {r: 1, g: 1, b: 1, a: 0.078431375}
+  m_FlipX: 1
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 3.6, y: 3.6}
@@ -221,7 +221,6 @@ MonoBehaviour:
   _control: 0
   _movementDirection: 0
   _rigidbody: {fileID: 4609947026796387586}
-  _spriteRenderer: {fileID: 7447191595800974132}
   _rangeBox: {fileID: 0}
   _aiTriggerZone: {fileID: 0}
   _spaceshipVisualController: {fileID: 1074442393829027716}
